@@ -1,6 +1,13 @@
+
 #include "AI8051U.h"
 #include "stdio.h"
 #include "intrins.h"
+
+#include "stc32_stc8_usb.h"
+
+char *USER_DEVICEDESC = NULL;
+char *USER_PRODUCTDESC = NULL;
+char *USER_STCISPCMD = "@STCISP#";
 
 /****************************** 用户定义宏 ***********************************/
 
@@ -15,7 +22,7 @@
 
 #define	COLOR	50				//亮度，最大255
 
-#define	LED_NUM	32				//LED灯个数
+#define	LED_NUM	250				//LED灯个数
 #define	SPI_NUM	(LED_NUM*12)	//LED灯对应SPI字节数
 
 #define IR_CODE_1 10
@@ -38,7 +45,7 @@ bit	B_SPI_DMA_busy;	//SPI-DMA忙标志
 
 /*************  红外接收程序变量声明    **************/
 
-sbit P_IR_RX = P3^5;    //定义红外接收输入IO口//工程里用P5.0，这里应该改为P5^0
+sbit P_IR_RX = P5^0;    //定义红外接收输入IO口//工程里用P5.0，这里应该改为P5^0
 
 u8  IR_SampleCnt;       //采样计数
 u8  IR_BitCnt;          //编码位数
@@ -59,20 +66,17 @@ void SPI_Config(u8 SPI_io, u8 SPI_speed);
 void LoadSPI(void);
 void SPI_DMA_TxTRIG(u8 xdata *TxBuf, u16 num);
 void delay_ms(u16 ms);
-void sample1_run_single();
-void sample2_line_by_line_X();
-void sample3_line_by_line_Y();
-void sample4_layer_by_layer();
-void sample5_rainbow();
 
 void sample1_run_single()
 {
     u16 j = 0;
+    u16 i = 0;
     static u16 k = 0;
 
     u8	xdata *px;
     px = &led_RGB[0][0];	//亮度(颜色)首地址
-    for(u16 i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
+
+    for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
 
     j = k;
 
@@ -87,6 +91,10 @@ void sample1_run_single()
 //	if(--k >= LED_NUM)	k = LED_NUM-1;	//逆时针
 
 }
+void sample2_line_by_line_X(){}
+void sample3_line_by_line_Y(){}
+void sample4_layer_by_layer(){}
+void sample5_rainbow(){}
 
 /********************* 主函数 *************************/
 void main(void)
@@ -112,9 +120,11 @@ void main(void)
 
     cnt_1ms = SysTick / 1000;
 
+    usb_init();
     SPI_Config(1, 1);
 
     EA = 1;     //打开总中断
+		//printf("code begin\r\n");
     
     while(1)
     {
@@ -139,7 +149,7 @@ void main(void)
                     sample1_run_single();
                 LoadSPI();	//将颜色装载到SPI数据
                 SPI_DMA_TxTRIG(led_SPI, SPI_NUM);	//u8 xdata *TxBuf, u16 num), 启动SPI DMA, 720字节一共耗时2.08ms @25.6MHz
-                printf("Read: UserCode=0x%04x,IRCode=%u\r\n",UserCode,IR_code);
+                //printf("Read: UserCode=0x%04x,IRCode=%u\r\n",UserCode,IR_code);
 
                 delay_ms(50);
             }
@@ -223,6 +233,16 @@ void timer0 (void) interrupt 1
     }
 }
 
+//================ N ms延时函数 ==============
+void  delay_ms(u16 ms)
+{
+	u16 i;
+	do
+	{
+		i = MAIN_Fosc / 6000;
+		while(--i)	;
+	}while(--ms);
+}
 /********************** SPI相关函数 ************************/
 
 void	LoadSPI(void)
