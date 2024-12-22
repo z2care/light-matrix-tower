@@ -96,7 +96,24 @@ void sample1_run_single()
 
 }
 
-void sample2_line_by_line_X(){}
+void sample2_line_by_line_X()
+{
+	static u16 s2_k = 0;
+	u16 j = 0;
+  u16 i = 0;
+	
+	u8	xdata *px;
+	px = &led_RGB[0][0];	//亮度(颜色)首地址
+
+  for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
+	
+	for(j=0; j<5; j++)	
+		led_RGB[5*s2_k+j][s2_k%3] = COLOR;
+	
+	s2_k++;
+	if(s2_k >= 50)	s2_k = 0;
+
+}
 void sample3_line_by_line_Y(){}
 void sample4_layer_by_layer(){}
 void sample5_rainbow(){}
@@ -158,7 +175,7 @@ void main(void)
 							printf("Read: UserCode=0x%04x,IRCode=%u\r\n",UserCode,IR_code);
 							usb_OUT_done();
 
-							delay_ms(50);
+							delay_ms(100);
 					}
 			}
 	}
