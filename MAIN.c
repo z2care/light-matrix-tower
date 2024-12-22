@@ -1,13 +1,7 @@
-
-#include "AI8051U.h"
+#include "ai8051u.h"			//调用头文件
 #include "stdio.h"
 #include "intrins.h"
-
-#include "stc32_stc8_usb.h"
-
-char *USER_DEVICEDESC = NULL;
-char *USER_PRODUCTDESC = NULL;
-char *USER_STCISPCMD = "@STCISP#";
+#include "stc32_stc8_usb.h"		//调用头文件
 
 /****************************** 用户定义宏 ***********************************/
 
@@ -25,12 +19,12 @@ char *USER_STCISPCMD = "@STCISP#";
 #define	LED_NUM	250				//LED灯个数
 #define	SPI_NUM	(LED_NUM*12)	//LED灯对应SPI字节数
 
-#define IR_CODE_1 10
-#define IR_CODE_2 20
-#define IR_CODE_3 30
-#define IR_CODE_4 40
-#define IR_CODE_5 50
-#define IR_CODE_6 60
+#define IR_CODE_1 12
+#define IR_CODE_2 24
+#define IR_CODE_3 94
+#define IR_CODE_4 8
+#define IR_CODE_5 28
+#define IR_CODE_6 90
 
 /*************  本地变量声明    **************/
 
@@ -59,6 +53,16 @@ bit B_IR_Sync;          //已收到同步标志
 bit B_IR_Press;         //红外接收标志
 u8  IR_code;            //红外键码
 u16 UserCode;           //用户码
+
+#define u8  unsigned char		//8位无符号变量（0-255）
+#define u16 unsigned int		//16位无符号变量（0-65535）	
+	
+u8 X = 200;
+u8 Y = 10;
+
+char *USER_DEVICEDESC = NULL;
+char *USER_PRODUCTDESC = NULL;
+char *USER_STCISPCMD = "@STCISP#";
 
 /*************  本地函数声明    **************/
 
@@ -91,72 +95,74 @@ void sample1_run_single()
 //	if(--k >= LED_NUM)	k = LED_NUM-1;	//逆时针
 
 }
+
 void sample2_line_by_line_X(){}
 void sample3_line_by_line_Y(){}
 void sample4_layer_by_layer(){}
 void sample5_rainbow(){}
 
-/********************* 主函数 *************************/
 void main(void)
 {
-    WTST = 0;  //设置程序指令延时参数，赋值为0可将CPU执行指令的速度设置为最快
-    EAXFR = 1; //扩展寄存器(XFR)访问使能
+    //P_SW2 |= 0x80;		//B7位写1，使能访问XFR
+	  WTST = 0;  //设置程序指令延时参数，赋值为0可将CPU执行指令的速度设置为最快
+    EAXFR = 1; //扩展寄存器(XFR)访问使能//P_SW2 |= 0x80;    //B7位写1，使能访问XFR
     CKCON = 0; //提高访问XRAM速度
-
-    P0M1 = 0x00;   P0M0 = 0x00;   //设置为准双向口
-    P1M1 = 0x00;   P1M0 = 0x00;   //设置为准双向口
-    P2M1 = 0x00;   P2M0 = 0x00;   //设置为准双向口
-    P3M1 = 0x00;   P3M0 = 0x00;   //设置为准双向口
-    P4M1 = 0x00;   P4M0 = 0x00;   //设置为准双向口
-    P5M1 = 0x00;   P5M0 = 0x00;   //设置为准双向口
-    P6M1 = 0x00;   P6M0 = 0x00;   //设置为准双向口
-    P7M1 = 0x00;   P7M0 = 0x00;   //设置为准双向口
-
-    AUXR = 0x80;    //Timer0 set as 1T, 16 bits timer auto-reload, 
+	
+    P0M1 = 0x00;   P0M0 = 0x00;
+    P1M1 = 0x00;   P1M0 = 0x00;
+    P2M1 = 0x00;   P2M0 = 0x00;
+    P3M1 = 0x00;   P3M0 = 0x00;
+    P4M1 = 0x00;   P4M0 = 0x00;
+    P5M1 = 0x00;   P5M0 = 0x00;
+    P6M1 = 0x00;   P6M0 = 0x00;
+    P7M1 = 0x00;   P7M0 = 0x00;
+	
+	  AUXR = 0x80;    //Timer0 set as 1T, 16 bits timer auto-reload, 
     TH0 = (u8)(Timer0_Reload / 256);
     TL0 = (u8)(Timer0_Reload % 256);
     ET0 = 1;        //Timer0 interrupt enable
     TR0 = 1;        //Tiner0 run
 
     cnt_1ms = SysTick / 1000;
+		SPI_Config(1, 1);//
+	  usb_init();                                     //USB CDC 接口配置
 
-    usb_init();
-    SPI_Config(1, 1);
+    IE2 |= 0x80;                                    //使能USB中断
+    EA = 1;											//IE |= 0X80;
+	
+	while (DeviceState != DEVSTATE_CONFIGURED);     //等待USB完成配置
+	
+	while(1)
+	{
+			if(B_1ms)   //1ms到
+			{
+					B_1ms = 0;
+					
+					if(B_IR_Press)      //检测到收到红外键码
+					{
+							B_IR_Press = 0;
+							if(IR_code == IR_CODE_1)
+									sample1_run_single();
+							else if(IR_code == IR_CODE_2)
+									sample2_line_by_line_X();
+							else if(IR_code == IR_CODE_3)
+									sample3_line_by_line_Y();
+							else if(IR_code == IR_CODE_4)
+									sample4_layer_by_layer();
+							else if(IR_code == IR_CODE_5)
+									sample5_rainbow();
+							else
+									sample1_run_single();
+							LoadSPI();	//将颜色装载到SPI数据
+							SPI_DMA_TxTRIG(led_SPI, SPI_NUM);	//u8 xdata *TxBuf, u16 num), 启动SPI DMA, 720字节一共耗时2.08ms @25.6MHz
+							printf("Read: UserCode=0x%04x,IRCode=%u\r\n",UserCode,IR_code);
+							usb_OUT_done();
 
-    EA = 1;     //打开总中断
-		//printf("code begin\r\n");
-    
-    while(1)
-    {
-        if(B_1ms)   //1ms到
-        {
-            B_1ms = 0;
-            
-            if(B_IR_Press)      //检测到收到红外键码
-            {
-                B_IR_Press = 0;
-                if(IR_code == IR_CODE_1)
-                    sample1_run_single();
-                else if(IR_code == IR_CODE_2)
-                    sample2_line_by_line_X();
-                else if(IR_code == IR_CODE_3)
-                    sample3_line_by_line_Y();
-                else if(IR_code == IR_CODE_4)
-                    sample4_layer_by_layer();
-                else if(IR_code == IR_CODE_5)
-                    sample5_rainbow();
-                else
-                    sample1_run_single();
-                LoadSPI();	//将颜色装载到SPI数据
-                SPI_DMA_TxTRIG(led_SPI, SPI_NUM);	//u8 xdata *TxBuf, u16 num), 启动SPI DMA, 720字节一共耗时2.08ms @25.6MHz
-                //printf("Read: UserCode=0x%04x,IRCode=%u\r\n",UserCode,IR_code);
-
-                delay_ms(50);
-            }
-        }
-    }
+							delay_ms(50);
+					}
+			}
+	}
 }
-
 //**************************** IR相关函数 ********************************************
 
 #define IR_SAMPLE_TIME      (1000000UL/SysTick)     //查询时间间隔, us, 红外接收要求在60us~250us之间
@@ -221,7 +227,6 @@ void IR_RX_NEC(void)
         }
     }
 }
-
 /********************** Timer0中断函数 ************************/
 void timer0 (void) interrupt 1
 {
