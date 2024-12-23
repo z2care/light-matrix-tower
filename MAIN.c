@@ -31,11 +31,12 @@
 bit B_1ms;          //1ms标志
 u8  cnt_1ms;        //1ms基本计时
 
-
 u8	xdata  led_RGB[LED_NUM][3];	//LED对应的RGB，led_buff[i][0]-->绿，led_buff[i][1]-->红，led_buff[i][0]-->蓝.
 u8	xdata  led_SPI[SPI_NUM];	//LED灯对应SPI字节数
 
 bit	B_SPI_DMA_busy;	//SPI-DMA忙标志
+
+u8 current_mode = 0;
 
 /*************  红外接收程序变量声明    **************/
 
@@ -56,9 +57,6 @@ u16 UserCode;           //用户码
 
 #define u8  unsigned char		//8位无符号变量（0-255）
 #define u16 unsigned int		//16位无符号变量（0-65535）	
-	
-u8 X = 200;
-u8 Y = 10;
 
 char *USER_DEVICEDESC = NULL;
 char *USER_PRODUCTDESC = NULL;
@@ -71,6 +69,16 @@ void LoadSPI(void);
 void SPI_DMA_TxTRIG(u8 xdata *TxBuf, u16 num);
 void delay_ms(u16 ms);
 
+//ws2812效果函数
+void setOneColor(uint16_t n, u8 g, u8 r, u8 b);
+uint32_t Color(uint8_t r, uint8_t g, uint8_t b);
+uint32_t Wheel(uint8_t WheelPos);
+void rainbow(uint8_t wait);
+void rainbowCycle(uint8_t wait);
+void theaterChase(uint32_t c, uint8_t wait) ;
+void theaterChaseRainbow(uint8_t wait) ;
+
+/***************函数实现部分 *********************/
 void sample1_run_single()
 {
     u16 j = 0;
@@ -100,12 +108,12 @@ void sample2_line_by_line_X()
 {
 	static u16 s2_k = 0;
 	u16 j = 0;
-  u16 i = 0;
+	u16 i = 0;
 	
 	u8	xdata *px;
 	px = &led_RGB[0][0];	//亮度(颜色)首地址
 
-  for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
+	for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
 	
 	for(j=0; j<5; j++)	
 		led_RGB[5*s2_k+j][s2_k%3] = COLOR;
@@ -114,9 +122,50 @@ void sample2_line_by_line_X()
 	if(s2_k >= 50)	s2_k = 0;
 
 }
-void sample3_line_by_line_Y(){}
-void sample4_layer_by_layer(){}
-void sample5_rainbow(){}
+void sample3_line_by_line_Y()
+{
+	static u16 s3_k;
+	u16 j = 0;
+
+	u16 i = 0;
+	for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
+
+
+}
+void sample4_layer_by_layer()
+{
+	static u16 s4_k;
+	u16 j = 0;
+
+	u16 i = 0;
+	for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
+
+	for(j=0; j<25; j++)
+		led_RGB[25*s4_k+j][s4_k%3] = COLOR;
+	
+	s4_k++;
+	if(s4_k >= 10)	s4_k = 0;
+}
+void sample5_rainbow()
+{
+	static u16 s5_k;
+	u16 j = 0;
+
+	u16 i = 0;
+	for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
+
+	rainbowCycle(100);//wait 100ms per color step
+}
+void sample6_random_blink()
+{
+	static u16 s6_k;
+	u16 j = 0;
+
+	u16 i = 0;
+	for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
+
+	theaterChaseRainbow(100);//wait 100ms per color step
+}
 
 void main(void)
 {
@@ -157,26 +206,43 @@ void main(void)
 					
 					if(B_IR_Press)      //检测到收到红外键码
 					{
-							B_IR_Press = 0;
-							if(IR_code == IR_CODE_1)
-									sample1_run_single();
-							else if(IR_code == IR_CODE_2)
-									sample2_line_by_line_X();
-							else if(IR_code == IR_CODE_3)
-									sample3_line_by_line_Y();
-							else if(IR_code == IR_CODE_4)
-									sample4_layer_by_layer();
-							else if(IR_code == IR_CODE_5)
-									sample5_rainbow();
-							else
-									sample1_run_single();
-							LoadSPI();	//将颜色装载到SPI数据
-							SPI_DMA_TxTRIG(led_SPI, SPI_NUM);	//u8 xdata *TxBuf, u16 num), 启动SPI DMA, 720字节一共耗时2.08ms @25.6MHz
-							printf("Read: UserCode=0x%04x,IRCode=%u\r\n",UserCode,IR_code);
-							usb_OUT_done();
-
-							delay_ms(100);
+						B_IR_Press = 0;
+						if(IR_code == IR_CODE_1)
+							current_mode = 1;
+						else if(IR_code == IR_CODE_2)
+							current_mode = 2;
+						else if(IR_code == IR_CODE_3)
+							current_mode = 3;
+						else if(IR_code == IR_CODE_4)
+							current_mode = 4;
+						else if(IR_code == IR_CODE_5)
+							current_mode = 5;
+						else if(IR_code == IR_CODE_6)
+							current_mode = 6;
+						else
+							current_mode = 1;
 					}
+					if(current_mode == 1)
+						sample1_run_single();
+					else if(current_mode == 2)
+						sample2_line_by_line_X();
+					else if(current_mode == 3)
+						sample3_line_by_line_Y();
+					else if(current_mode == 4)
+						sample4_layer_by_layer();
+					else if(current_mode == 5)
+						sample5_rainbow();
+					else if(current_mode == 6)
+						sample5_random_blink();
+					else
+						sample1_run_single();
+					LoadSPI();	//将颜色装载到SPI数据
+					SPI_DMA_TxTRIG(led_SPI, SPI_NUM);	//u8 xdata *TxBuf, u16 num), 启动SPI DMA, 720字节一共耗时2.08ms @25.6MHz
+					//printf("Read: UserCode=0x%04x,IRCode=%u\r\n",UserCode,IR_code);
+					//usb_OUT_done();
+
+					delay_ms(100);
+					
 			}
 	}
 }
@@ -398,4 +464,91 @@ void SPI_DMA_ISR (void) interrupt DMA_SPI_VECTOR
 {
 	DMA_SPI_STA = 0;		//清除中断标志
 	B_SPI_DMA_busy = 0;		//SPI-DMA忙标志
+}
+
+/********************* WS2812效果 *****************************/
+
+void setOneColor(uint16_t n, u32 c) {
+	led_RGB[n][0] = (uint8_t) (c >> 16);
+	led_RGB[n][1] = (uint8_t) (c >> 8);
+	led_RGB[n][2] = (uint8_t) c;
+}
+
+uint32_t Color(uint8_t r, uint8_t g, uint8_t b) {
+	return ((uint32_t) r << 16) | ((uint32_t) g << 8) | b;
+}
+uint32_t Wheel(uint8_t WheelPos) {
+	WheelPos = 255 - WheelPos;
+	if (WheelPos < 85) {
+		return Color(255 - WheelPos * 3, 0, WheelPos * 3);
+	}
+	if (WheelPos < 170) {
+		WheelPos -= 85;
+		return Color(0, WheelPos * 3, 255 - WheelPos * 3);
+	}
+	WheelPos -= 170;
+	return Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+ 
+void rainbow(uint8_t wait) {
+	uint16_t i, j;
+	for (j = 0; j < 256; j++) {
+		for (i = 0; i < LED_NUM; i++) {
+			setOneColor(i, Wheel((i + j) & 255));
+		}
+		delay_ms(wait);
+	}
+	setAllPixel();
+}
+// Slightly different, this makes the rainbow equally distributed throughout
+void rainbowCycle(uint8_t wait) {
+	uint16_t i, j;
+ 
+	for (j = 0; j < 256 * 5; j++) { // 5 cycles of all colors on wheel
+		for (i = 0; i < LED_NUM; i++) {
+			setOneColor(i, Wheel(((i * 256 / LED_NUM) + j) & 255));
+		}
+		delay_ms(wait);
+	}
+	setAllPixel();
+}
+//Theatre-style crawling lights
+void theaterChase(uint32_t c, uint8_t wait) {
+	int i, j, q;
+	for (j = 0; j < 10; j++) {  //do 10 cycles of chasing
+		for (q = 0; q < 3; q++) {
+			for (i = 0; i < LED_NUM; i = i + 1)  //turn every one pixel on
+					{
+				setOneColor(i + q, c);
+			}
+			delay_ms(wait);
+ 
+			for (i = 0; i < LED_NUM; i = i + 1) //turn every one pixel off
+					{
+				setOneColor(i + q, 0);
+			}
+		}
+	}
+	setAllPixel();
+}
+ 
+//Theatre-style crawling lights with rainbow effect
+void theaterChaseRainbow(uint8_t wait) {
+	int i, j, q;
+	for (j = 0; j < 256; j++) {     // cycle all 256 colors in the wheel
+		for (q = 0; q < 3; q++) {
+			for (i = 0; i < LED_NUM; i = i + 1) //turn every one pixel on
+					{
+				setOneColor(i + q, Wheel((i + j) % 255));
+			}
+ 
+			delay_ms(wait);
+ 
+			for (i = 0; i < LED_NUM; i = i + 1) //turn every one pixel off
+					{
+				setOneColor(i + q, 0);
+			}
+		}
+	}
+	setAllPixel();
 }
