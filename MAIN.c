@@ -70,13 +70,15 @@ void SPI_DMA_TxTRIG(u8 xdata *TxBuf, u16 num);
 void delay_ms(u16 ms);
 
 //ws2812效果函数
-void setOneColor(uint16_t n, u8 g, u8 r, u8 b);
+void setOneColor(uint16_t n, u32 c);
 uint32_t Color(uint8_t r, uint8_t g, uint8_t b);
 uint32_t Wheel(uint8_t WheelPos);
 void rainbow(uint8_t wait);
 void rainbowCycle(uint8_t wait);
 void theaterChase(uint32_t c, uint8_t wait) ;
 void theaterChaseRainbow(uint8_t wait) ;
+
+void setAllPixel(){};
 
 /***************函数实现部分 *********************/
 void sample1_run_single()
@@ -128,6 +130,8 @@ void sample3_line_by_line_Y()
 	u16 j = 0;
 
 	u16 i = 0;
+	u8	xdata *px;
+	px = &led_RGB[0][0];	//亮度(颜色)首地址
 	for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
 
 
@@ -138,6 +142,8 @@ void sample4_layer_by_layer()
 	u16 j = 0;
 
 	u16 i = 0;
+	u8	xdata *px;
+	px = &led_RGB[0][0];	//亮度(颜色)首地址
 	for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
 
 	for(j=0; j<25; j++)
@@ -152,6 +158,8 @@ void sample5_rainbow()
 	u16 j = 0;
 
 	u16 i = 0;
+	u8	xdata *px;
+	px = &led_RGB[0][0];	//亮度(颜色)首地址
 	for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
 
 	rainbowCycle(100);//wait 100ms per color step
@@ -162,6 +170,8 @@ void sample6_random_blink()
 	u16 j = 0;
 
 	u16 i = 0;
+	u8	xdata *px;
+	px = &led_RGB[0][0];	//亮度(颜色)首地址
 	for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
 
 	theaterChaseRainbow(100);//wait 100ms per color step
@@ -233,7 +243,7 @@ void main(void)
 					else if(current_mode == 5)
 						sample5_rainbow();
 					else if(current_mode == 6)
-						sample5_random_blink();
+						sample6_random_blink();
 					else
 						sample1_run_single();
 					LoadSPI();	//将颜色装载到SPI数据
