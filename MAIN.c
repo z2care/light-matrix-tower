@@ -134,7 +134,11 @@ void sample3_line_by_line_Y()
 	px = &led_RGB[0][0];	//亮度(颜色)首地址
 	for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
 
-
+	for(j=0;j<5;j++)
+		led_RGB[5*j+s3_k][s2_k%3] = COLOR;
+	if(([5*j+s3_k]+1)%25 == 0)
+		s3_k = [5*j+s3_k]+1;
+	
 }
 void sample4_layer_by_layer()
 {
