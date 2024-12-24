@@ -71,8 +71,8 @@ void delay_ms(u16 ms);
 
 //ws2812效果函数
 void setOneColor(uint16_t n, u32 c);
-uint32_t Color(uint8_t r, uint8_t g, uint8_t b);
-uint32_t Wheel(uint8_t WheelPos);
+uint32_t Color(uint16_t r, uint16_t g, uint16_t b);
+uint32_t Wheel(uint16_t WheelPos);
 void rainbow(uint8_t wait);
 void rainbowCycle(uint8_t wait);
 void theaterChase(uint32_t c, uint8_t wait) ;
@@ -111,34 +111,41 @@ void sample2_line_by_line_X()
 	static u16 s2_k = 0;
 	u16 j = 0;
 	u16 i = 0;
+	u16 t = 0;
 	
 	u8	xdata *px;
 	px = &led_RGB[0][0];	//亮度(颜色)首地址
 
 	for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
 	
-	for(j=0; j<5; j++)	
-		led_RGB[5*s2_k+j][s2_k%3] = COLOR;
+	for(t=0; t<10; t++)
+	{
+		for(j=0; j<5; j++)
+		  led_RGB[25*t+5*s2_k+j][s2_k%3] = COLOR;
+	}
 	
 	s2_k++;
-	if(s2_k >= 50)	s2_k = 0;
+	if(s2_k >= 5)	s2_k = 0;
 
 }
 void sample3_line_by_line_Y()
 {
 	static u16 s3_k;
 	u16 j = 0;
-
+	u16 t = 0;
 	u16 i = 0;
 	u8	xdata *px;
 	px = &led_RGB[0][0];	//亮度(颜色)首地址
 	for(i=0; i<(LED_NUM*3); i++, px++)	*px = 0;	//清零 TODO: memset instead
-
-	for(j=0;j<5;j++)
-		led_RGB[5*j+s3_k][s2_k%3] = COLOR;
-	if(([5*j+s3_k]+1)%25 == 0)
-		s3_k = [5*j+s3_k]+1;
 	
+	for(t=0; t<10; t++)
+	{
+		for(j=0; j<5; j++)
+		  led_RGB[25*t+5*j+s3_k][s3_k%3] = COLOR;
+	}
+	
+	s3_k++;
+	if(s3_k >= 5)	s3_k = 0;
 }
 void sample4_layer_by_layer()
 {
@@ -488,10 +495,10 @@ void setOneColor(uint16_t n, u32 c) {
 	led_RGB[n][2] = (uint8_t) c;
 }
 
-uint32_t Color(uint8_t r, uint8_t g, uint8_t b) {
+uint32_t Color(uint16_t r, uint16_t g, uint16_t b) {
 	return ((uint32_t) r << 16) | ((uint32_t) g << 8) | b;
 }
-uint32_t Wheel(uint8_t WheelPos) {
+uint32_t Wheel(uint16_t WheelPos) {
 	WheelPos = 255 - WheelPos;
 	if (WheelPos < 85) {
 		return Color(255 - WheelPos * 3, 0, WheelPos * 3);
