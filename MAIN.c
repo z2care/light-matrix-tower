@@ -14,7 +14,7 @@
 #define PrintUart       1        //1:printf 使用 UART1; 2:printf 使用 UART2
 
 
-#define	COLOR	50				//亮度，最大255
+#define	COLOR	100				//亮度，最大255
 
 #define	LED_NUM	250				//LED灯个数
 #define	SPI_NUM	(LED_NUM*12)	//LED灯对应SPI字节数
@@ -78,8 +78,6 @@ void rainbowCycle(uint8_t wait);
 void theaterChase(uint32_t c, uint8_t wait) ;
 void theaterChaseRainbow(uint8_t wait) ;
 
-void setAllPixel(){};
-
 /***************函数实现部分 *********************/
 void sample1_run_single()
 {
@@ -94,9 +92,15 @@ void sample1_run_single()
 
     j = k;
 
-    //set RGB=50 50 50
+    //light 6 leds and run ahead
     led_RGB[j][1] = COLOR;		//红色
     if(++j >= LED_NUM)	j = 0;	//下一个灯
+    led_RGB[j][0] = COLOR;		//绿色
+    if(++j >= LED_NUM)	j = 0;	//下一个灯
+    led_RGB[j][2] = COLOR;		//蓝色
+	if(++j >= LED_NUM)	j = 0;	//下一个灯
+    led_RGB[j][1] = COLOR;		//红色
+	if(++j >= LED_NUM)	j = 0;	//下一个灯
     led_RGB[j][0] = COLOR;		//绿色
     if(++j >= LED_NUM)	j = 0;	//下一个灯
     led_RGB[j][2] = COLOR;		//蓝色
@@ -519,7 +523,6 @@ void rainbow(uint8_t wait) {
 		}
 		delay_ms(wait);
 	}
-	setAllPixel();
 }
 // Slightly different, this makes the rainbow equally distributed throughout
 void rainbowCycle(uint8_t wait) {
@@ -531,7 +534,6 @@ void rainbowCycle(uint8_t wait) {
 		}
 		delay_ms(wait);
 	}
-	setAllPixel();
 }
 //Theatre-style crawling lights
 void theaterChase(uint32_t c, uint8_t wait) {
@@ -550,7 +552,6 @@ void theaterChase(uint32_t c, uint8_t wait) {
 			}
 		}
 	}
-	setAllPixel();
 }
  
 //Theatre-style crawling lights with rainbow effect
@@ -571,5 +572,4 @@ void theaterChaseRainbow(uint8_t wait) {
 			}
 		}
 	}
-	setAllPixel();
 }
